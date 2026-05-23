@@ -8,7 +8,7 @@ use serde::Deserialize;
 
 /// Account balance response.
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize)]
-pub struct Balence {
+pub struct Balance {
     pub is_available: bool,
     pub balance_infos: Vec<BalanceInfo>,
 }
@@ -22,7 +22,7 @@ pub struct BalanceInfo {
     pub topped_up_balance: String,
 }
 
-impl Balence {
+impl Balance {
     /// Fetch account balance.
     pub async fn get(credentials: Credentials) -> Result<Self, DeepSeekError> {
         api_get("/user/balance", Some(credentials)).await
@@ -41,11 +41,11 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_balence() {
+    async fn test_get_balance() {
         let credentials = get_credentials();
-        let balence = Balence::get(credentials).await.unwrap();
-        println!("{:#?}", balence);
-        assert!(balence.is_available);
-        assert!(!balence.balance_infos.is_empty());
+        let balance = Balance::get(credentials).await.unwrap();
+        println!("{:#?}", balance);
+        assert!(balance.is_available);
+        assert!(!balance.balance_infos.is_empty());
     }
 }

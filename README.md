@@ -148,13 +148,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ### Balance
 
 ```rust
-use deepseek_rs::balence::Balence;
-use deepseek_rs::{Credentials, DEFAULT_BASE_URL};
+use deepseek_sdk::balance::Balance;
+use deepseek_sdk::{Credentials, DEFAULT_BASE_URL};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
  let credentials = Credentials::new("sk-...", DEFAULT_BASE_URL.clone());
- let balance = Balence::get(credentials).await?;
+ let balance = Balance::get(credentials).await?;
  println!("{:#?}", balance);
  Ok(())
 }
