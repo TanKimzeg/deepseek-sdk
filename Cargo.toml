@@ -1,0 +1,19 @@
+[package]
+name = "deepseek-rs"
+version = "0.1.0"
+edition = "2024"
+authors = ["Tan Kimzeg"]
+repository = "https://github.com/TanKimzeg/deepseek-rs"
+description = "DeepSeek API client for Rust."
+license = "MIT"
+readme = "README.md"
+keywords = ["deepseek", "openai", "ai"]
+
+[dependencies]
+derive_builder = "0.20.2"
+futures-util = "0.3.31"
+reqwest = { version = "0.12", features = ["json", "stream", "multipart"] }
+reqwest-eventsource = "0.6.0"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+tokio = { version = "1.52.3", features = ["macros", "rt-multi-thread"] }

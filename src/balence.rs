@@ -1,0 +1,51 @@
+//! User balance API.
+//!
+//! Maps to `GET /user/balance`.
+use crate::Credentials;
+use crate::DeepSeekError;
+use crate::api_get;
+use serde::Deserialize;
+
+/// Account balance response.
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize)]
+pub struct Balence {
+    pub is_available: bool,
+    pub balance_infos: Vec<BalanceInfo>,
+}
+
+/// Balance entry by currency.
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize)]
+pub struct BalanceInfo {
+    pub currency: String,
+    pub total_balance: String,
+    pub granted_balance: String,
+    pub topped_up_balance: String,
+}
+
+impl Balence {
+    /// Fetch account balance.
+    pub async fn get(credentials: Credentials) -> Result<Self, DeepSeekError> {
+        api_get("/user/balance", Some(credentials)).await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::DEFAULT_BASE_URL;
+    fn get_credentials() -> Credentials {
+        Credentials::new(
+            std::env::var("DEEPSEEK_API").unwrap(),
+            DEFAULT_BASE_URL.clone(),
+        )
+    }
+
+    #[tokio::test]
+    async fn test_get_balence() {
+        let credentials = get_credentials();
+        let balence = Balence::get(credentials).await.unwrap();
+        println!("{:#?}", balence);
+        assert!(balence.is_available);
+        assert!(!balence.balance_infos.is_empty());
+    }
+}
