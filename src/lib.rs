@@ -11,8 +11,8 @@
 //! yields stream items.
 //!
 //! ```no_run
-//! use deepseek_rs::chat::request::{ChatMessage, ChatRequestBuilder, Thinking};
-//! use deepseek_rs::{Credentials, DeepSeekRequest, DEFAULT_BASE_URL};
+//! use deepseek_sdk::chat::request::{ChatMessage, ChatRequestBuilder, Thinking};
+//! use deepseek_sdk::{Credentials, DeepSeekRequest, DEFAULT_BASE_URL};
 //!
 //! # async fn run() -> Result<(), Box<dyn std::error::Error>> {
 //! let req = ChatRequestBuilder::default()
@@ -24,7 +24,7 @@
 //! let _resp = req.send().await?;
 //! # Ok(()) }
 //! ```
-pub mod balence;
+pub mod balance;
 pub mod chat;
 pub mod completion;
 pub mod error;

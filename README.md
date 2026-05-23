@@ -1,8 +1,8 @@
-## deepseek-rs
+# deepseek-sdk
 
 DeepSeek API client for Rust.
 
-### Features
+## Features
 
 - Chat completions (`/chat/completions`)
 - FIM completions (beta, `/beta/completions`)
@@ -10,15 +10,15 @@ DeepSeek API client for Rust.
 - Account balance (`/user/balance`)
 - Streaming via async receiver or blocking iterator
 
-### Install
+## Install
 
 Add to `Cargo.toml`:
 
 ```toml
-deepseek-rs = "0.1"
+deepseek-sdk = "0.1"
 ```
 
-### API Key
+## API Key
 
 Set your API key before running examples:
 
@@ -26,11 +26,11 @@ Set your API key before running examples:
 export DEEPSEEK_API="sk-..."
 ```
 
-### Quick Start (Chat)
+## Quick Start (Chat)
 
 ```rust
-use deepseek_rs::chat::request::{ChatMessage, ChatRequestBuilder, Thinking};
-use deepseek_rs::{Credentials, DeepSeekRequest, DEFAULT_BASE_URL};
+use deepseek_sdk::chat::request::{ChatMessage, ChatRequestBuilder, Thinking};
+use deepseek_sdk::{Credentials, DeepSeekRequest, DEFAULT_BASE_URL};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -51,11 +51,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-### Async Streaming
+## Async Streaming
 
 ```rust
-use deepseek_rs::chat::request::{ChatMessage, ChatRequestBuilder, Thinking};
-use deepseek_rs::{Credentials, DeepSeekRequest, DEFAULT_BASE_URL};
+use deepseek_sdk::chat::request::{ChatMessage, ChatRequestBuilder, Thinking};
+use deepseek_sdk::{Credentials, DeepSeekRequest, DEFAULT_BASE_URL};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -79,11 +79,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-### Blocking Streaming
+## Blocking Streaming
 
 ```rust
-use deepseek_rs::chat::request::{ChatMessage, ChatRequestBuilder, Thinking};
-use deepseek_rs::{Credentials, DeepSeekRequest, DEFAULT_BASE_URL};
+use deepseek_sdk::chat::request::{ChatMessage, ChatRequestBuilder, Thinking};
+use deepseek_sdk::{Credentials, DeepSeekRequest, DEFAULT_BASE_URL};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
  let req = ChatRequestBuilder::default()
@@ -106,13 +106,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-### FIM Completion (Beta)
+## FIM Completion (Beta)
 
 FIM uses the beta base URL.
 
 ```rust
-use deepseek_rs::completion::fim::FIMCompletionRequestBuilder;
-use deepseek_rs::{Credentials, DeepSeekRequest, DEFAULT_BETA_BASE_URL};
+use deepseek_sdk::completion::fim::FIMCompletionRequestBuilder;
+use deepseek_sdk::{Credentials, DeepSeekRequest, DEFAULT_BETA_BASE_URL};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -130,11 +130,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-### List Models
+## List Models
 
 ```rust
-use deepseek_rs::models::Models;
-use deepseek_rs::{Credentials, DEFAULT_BASE_URL};
+use deepseek_sdk::models::Models;
+use deepseek_sdk::{Credentials, DEFAULT_BASE_URL};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -145,7 +145,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-### Balance
+## Balance
 
 ```rust
 use deepseek_sdk::balance::Balance;
@@ -160,7 +160,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-### Error Handling
+## Error Handling
 
 All requests return `DeepSeekError` on failure, covering:
 
@@ -169,6 +169,6 @@ All requests return `DeepSeekError` on failure, covering:
 - Decode errors (`Decode`)
 - Transport failures (`Transport`)
 
-### License
+## License
 
 MIT
