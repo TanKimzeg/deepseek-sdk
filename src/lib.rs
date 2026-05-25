@@ -72,12 +72,15 @@ impl DeepSeekClient {
         self
     }
 
-    pub fn with_credentials(mut self, api_key: impl Into<String>, base_url: impl Into<String>) -> Self {
+    pub fn with_credentials(
+        mut self,
+        api_key: impl Into<String>,
+        base_url: impl Into<String>,
+    ) -> Self {
         self.credentials = Credentials::new(api_key, base_url);
         self
     }
 }
-
 
 impl Credentials {
     /// Create credentials with an API key and base URL.

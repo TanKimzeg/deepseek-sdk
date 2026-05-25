@@ -9,6 +9,7 @@ use serde::Deserialize;
 /// Account balance response.
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize)]
 pub struct Balance {
+    /// Whether the user's balance is sufficient for API calls.
     pub is_available: bool,
     pub balance_infos: Vec<BalanceInfo>,
 }
@@ -16,9 +17,18 @@ pub struct Balance {
 /// Balance entry by currency.
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize)]
 pub struct BalanceInfo {
+    /// Possible values: [CNY, USD]
+    ///
+    /// The currency of the balance.
     pub currency: String,
+
+    /// The total available balance, including the granted balance and the topped-up balance.
     pub total_balance: String,
+
+    /// The total not expired granted balance.
     pub granted_balance: String,
+
+    /// The total topped-up balance.
     pub topped_up_balance: String,
 }
 

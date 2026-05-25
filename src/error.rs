@@ -62,10 +62,7 @@ pub enum DeepSeekError {
         body: Option<String>,
     },
     /// Non-JSON or otherwise unrecognized HTTP error.
-    Http {
-        status: u16,
-        body: Option<String>,
-    },
+    Http { status: u16, body: Option<String> },
     /// Response could not be decoded into the expected schema.
     Decode {
         message: String,
