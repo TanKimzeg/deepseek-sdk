@@ -12,11 +12,11 @@
 //!
 //! ```no_run
 //! use deepseek_sdk::chat::request::{ChatMessage, ChatRequestBuilder, Thinking};
-//! use deepseek_sdk::{Credentials, DeepSeekRequest, DEFAULT_BASE_URL};
+//! use deepseek_sdk::{DeepSeekClient, DeepSeekRequest, DEFAULT_BASE_URL};
 //!
 //! # async fn run() -> Result<(), Box<dyn std::error::Error>> {
 //! let req = ChatRequestBuilder::default()
-//!     .credentials(Credentials::new("sk-...", DEFAULT_BASE_URL.clone()))
+//!     .client(DeepSeekClient::new("sk-...", DEFAULT_BASE_URL.clone()))
 //!     .model("deepseek-v4-flash")
 //!     .message(ChatMessage::User { content: "Hi".into(), name: None })
 //!     .thinking(Thinking::disabled())
@@ -47,15 +47,41 @@ pub static DEFAULT_BETA_BASE_URL: LazyLock<String> =
     LazyLock::new(|| String::from("https://api.deepseek.com/beta"));
 
 /// API credentials for a DeepSeek endpoint.
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct Credentials {
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct Credentials {
     pub(crate) api_key: String,
     pub(crate) base_url: String,
 }
 
+#[derive(Clone, Debug)]
+pub struct DeepSeekClient {
+    pub(crate) credentials: Credentials,
+    pub client: Client,
+}
+
+impl DeepSeekClient {
+    pub fn new(api_key: impl Into<String>, base_url: impl Into<String>) -> Self {
+        DeepSeekClient {
+            credentials: Credentials::new(api_key, base_url),
+            client: Client::new(),
+        }
+    }
+
+    pub fn with_client(mut self, client: Client) -> Self {
+        self.client = client;
+        self
+    }
+
+    pub fn with_credentials(mut self, api_key: impl Into<String>, base_url: impl Into<String>) -> Self {
+        self.credentials = Credentials::new(api_key, base_url);
+        self
+    }
+}
+
+
 impl Credentials {
     /// Create credentials with an API key and base URL.
-    pub fn new(api_key: impl Into<String>, base_url: impl Into<String>) -> Self {
+    pub(crate) fn new(api_key: impl Into<String>, base_url: impl Into<String>) -> Self {
         Credentials {
             api_key: api_key.into(),
             base_url: base_url.into(),
@@ -90,13 +116,13 @@ async fn api_request_json<F, T>(
     method: Method,
     route: &str,
     builder: F,
-    credentials_opt: Option<Credentials>,
+    deepseek_client: DeepSeekClient,
 ) -> Result<T, DeepSeekError>
 where
     F: FnOnce(RequestBuilder) -> RequestBuilder,
     T: DeserializeOwned,
 {
-    let response = api_request(method, route, builder, credentials_opt).await?;
+    let response = api_request(method, route, builder, deepseek_client).await?;
     let status = response.status();
 
     let text = response.text().await?;
@@ -120,17 +146,22 @@ async fn api_request<F>(
     method: Method,
     route: &str,
     builder: F,
-    credentials_opt: Option<Credentials>,
+    deepseek_client: DeepSeekClient,
 ) -> Result<Response, DeepSeekError>
 where
     F: FnOnce(RequestBuilder) -> RequestBuilder,
 {
-    let client = Client::new();
-    let credentials = credentials_opt.expect("Credentials are required");
-    let mut request = client.request(method, format!("{}{route}", credentials.base_url));
+    let client = deepseek_client.client;
+    let mut request = client.request(
+        method,
+        format!("{}{route}", deepseek_client.credentials.base_url),
+    );
     request = builder(request);
     let response = request
-        .header(AUTHORIZATION, format!("Bearer {}", credentials.api_key))
+        .header(
+            AUTHORIZATION,
+            format!("Bearer {}", deepseek_client.credentials.api_key),
+        )
         .send()
         .await?;
     Ok(response)
@@ -140,43 +171,37 @@ async fn api_request_stream<F>(
     method: Method,
     route: &str,
     builder: F,
-    credentials_opt: Option<Credentials>,
+    deepseek_client: DeepSeekClient,
 ) -> Result<EventSource, DeepSeekError>
 where
     F: FnOnce(RequestBuilder) -> RequestBuilder,
 {
-    let client = Client::new();
-    let credentials = credentials_opt.expect("Credentials are required");
-    let mut request = client.request(method, format!("{}{route}", credentials.base_url));
+    let mut request = deepseek_client.client.request(
+        method,
+        format!("{}{route}", deepseek_client.credentials.base_url),
+    );
     request = builder(request);
     let stream = request
-        .header(AUTHORIZATION, format!("Bearer {}", credentials.api_key))
+        .header(
+            AUTHORIZATION,
+            format!("Bearer {}", deepseek_client.credentials.api_key),
+        )
         .eventsource()
         .map_err(|err| DeepSeekError::decode(err.to_string(), String::new()))?;
     Ok(stream)
 }
 
-async fn api_get<T>(route: &str, credentials_opt: Option<Credentials>) -> Result<T, DeepSeekError>
+async fn api_get<T>(route: &str, client: DeepSeekClient) -> Result<T, DeepSeekError>
 where
     T: DeserializeOwned,
 {
-    api_request_json(Method::GET, route, |request| request, credentials_opt).await
+    api_request_json(Method::GET, route, |request| request, client).await
 }
 
-async fn api_post<J, T>(
-    route: &str,
-    json: &J,
-    credentials_opt: Option<Credentials>,
-) -> Result<T, DeepSeekError>
+async fn api_post<J, T>(route: &str, json: &J, client: DeepSeekClient) -> Result<T, DeepSeekError>
 where
     J: Serialize + ?Sized,
     T: DeserializeOwned,
 {
-    api_request_json(
-        Method::POST,
-        route,
-        |request| request.json(json),
-        credentials_opt,
-    )
-    .await
+    api_request_json(Method::POST, route, |request| request.json(json), client).await
 }

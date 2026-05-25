@@ -1,7 +1,7 @@
 //! User balance API.
 //!
 //! Maps to `GET /user/balance`.
-use crate::Credentials;
+use crate::DeepSeekClient;
 use crate::DeepSeekError;
 use crate::api_get;
 use serde::Deserialize;
@@ -24,8 +24,8 @@ pub struct BalanceInfo {
 
 impl Balance {
     /// Fetch account balance.
-    pub async fn get(credentials: Credentials) -> Result<Self, DeepSeekError> {
-        api_get("/user/balance", Some(credentials)).await
+    pub async fn get(client: DeepSeekClient) -> Result<Self, DeepSeekError> {
+        api_get("/user/balance", client).await
     }
 }
 
@@ -33,8 +33,8 @@ impl Balance {
 mod tests {
     use super::*;
     use crate::DEFAULT_BASE_URL;
-    fn get_credentials() -> Credentials {
-        Credentials::new(
+    fn get_client() -> DeepSeekClient {
+        DeepSeekClient::new(
             std::env::var("DEEPSEEK_API").expect("DEEPSEEK_API is not set"),
             DEFAULT_BASE_URL.clone(),
         )
@@ -42,8 +42,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_balance() {
-        let credentials = get_credentials();
-        let balance = Balance::get(credentials).await.unwrap();
+        let client = get_client();
+        let balance = Balance::get(client).await.unwrap();
         println!("{:#?}", balance);
         assert!(balance.is_available);
         assert!(!balance.balance_infos.is_empty());

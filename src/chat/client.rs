@@ -31,20 +31,20 @@ impl DeepSeekRequest for ChatRequest {
     type BlockingStream = ChatStreamBlocking;
 
     async fn send(self) -> Result<Chat, DeepSeekError> {
-        let credentials = self.credentials.clone();
-        api_post("/chat/completions", &self, credentials).await
+        let client = self.client.clone();
+        api_post("/chat/completions", &self, client).await
     }
 
     async fn stream(self) -> Result<mpsc::Receiver<ChatStreamItem>, DeepSeekError> {
         let mut request = self;
         request.stream = Some(true);
 
-        let credentials = request.credentials.clone();
+        let client = request.client.clone();
         let mut event_source = api_request_stream(
             Method::POST,
             "/chat/completions",
             |builder| builder.json(&request),
-            credentials,
+            client,
         )
         .await?;
 
@@ -123,10 +123,10 @@ impl DeepSeekRequest for ChatRequest {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Credentials, DEFAULT_BASE_URL};
+    use crate::{DEFAULT_BASE_URL, DeepSeekClient};
 
-    fn get_credentials() -> Credentials {
-        Credentials::new(
+    fn get_client() -> DeepSeekClient {
+        DeepSeekClient::new(
             std::env::var("DEEPSEEK_API").expect("DEEPSEEK_API is not set"),
             DEFAULT_BASE_URL.clone(),
         )
@@ -134,7 +134,7 @@ mod tests {
 
     fn get_builder() -> ChatRequestBuilder {
         ChatRequestBuilder::default()
-            .credentials(get_credentials())
+            .client(get_client())
             .model("deepseek-v4-flash")
             .thinking(Thinking::disabled())
     }

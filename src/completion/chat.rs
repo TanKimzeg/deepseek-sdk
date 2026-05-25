@@ -9,7 +9,7 @@ pub mod request {
     };
     use crate::chat::response::ToolCall;
     use crate::chat::{Chat, ChatStream, ChatStreamBlocking, ChatStreamItem, is_none_or_empty_vec};
-    use crate::{Credentials, DeepSeekRequest, api_post, api_request_stream};
+    use crate::{DeepSeekClient, DeepSeekRequest, api_post, api_request_stream};
     use derive_builder::Builder;
     use futures_util::StreamExt;
     use reqwest::Method;
@@ -23,7 +23,7 @@ pub mod request {
     }
 
     /// Beta chat request payload (beta base URL required).
-    #[derive(Clone, Debug, PartialEq, Serialize, Builder)]
+    #[derive(Clone, Debug, Serialize, Builder)]
     #[builder(
         pattern = "owned",
         setter(into, strip_option),
@@ -32,8 +32,7 @@ pub mod request {
     )]
     pub struct BetaChatRequest {
         #[serde(skip_serializing)]
-        #[builder(default)]
-        pub credentials: Option<Credentials>,
+        pub client: DeepSeekClient,
 
         #[builder(setter(each(name = "message", into)))]
         pub messages: Vec<BetaChatMessage>,
@@ -255,20 +254,20 @@ pub mod request {
         type BlockingStream = ChatStreamBlocking;
 
         async fn send(self) -> Result<Chat, DeepSeekError> {
-            let credentials = self.credentials.clone();
-            api_post("/chat/completions", &self, credentials).await
+            let client = self.client.clone();
+            api_post("/chat/completions", &self, client).await
         }
 
         async fn stream(self) -> Result<mpsc::Receiver<ChatStreamItem>, DeepSeekError> {
             let mut request = self;
             request.stream = Some(true);
 
-            let credentials = request.credentials.clone();
+            let client = request.client.clone();
             let mut event_source = api_request_stream(
                 Method::POST,
                 "/chat/completions",
                 |builder| builder.json(&request),
-                credentials,
+                client,
             )
             .await?;
 
@@ -351,10 +350,10 @@ pub mod request {
 #[cfg(test)]
 mod tests {
     use super::request::*;
-    use crate::{Credentials, DEFAULT_BETA_BASE_URL, DeepSeekRequest, chat::request::Thinking};
+    use crate::{DEFAULT_BETA_BASE_URL, DeepSeekClient, DeepSeekRequest, chat::request::Thinking};
 
-    fn get_credentials() -> Credentials {
-        Credentials::new(
+    fn get_client() -> DeepSeekClient {
+        DeepSeekClient::new(
             std::env::var("DEEPSEEK_API").expect("DEEPSEEK_API is not set"),
             DEFAULT_BETA_BASE_URL.clone(),
         )
@@ -362,7 +361,7 @@ mod tests {
 
     fn get_builder() -> BetaChatRequestBuilder {
         BetaChatRequestBuilder::default()
-            .credentials(get_credentials())
+            .client(get_client())
             .model("deepseek-v4-flash")
             .max_tokens(32 as u32)
             .thinking(Thinking::disabled())

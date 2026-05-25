@@ -8,7 +8,7 @@ use std::sync::mpsc as std_mpsc;
 use crate::chat::request::{Stop, StreamOptions, is_none_or_empty_stop};
 use crate::chat::response::ChatGeneric;
 use crate::error::DeepSeekError;
-use crate::{Credentials, api_request_stream};
+use crate::{DeepSeekClient, api_request_stream};
 use crate::{DeepSeekRequest, api_post};
 use derive_builder::Builder;
 use futures_util::StreamExt;
@@ -21,7 +21,7 @@ use tokio::sync::mpsc;
 pub type Completion = ChatGeneric<CompletionChoice>;
 
 /// FIM completion request payload.
-#[derive(Clone, Debug, PartialEq, Serialize, Builder)]
+#[derive(Clone, Debug, Serialize, Builder)]
 #[builder(
     pattern = "owned",
     setter(into, strip_option),
@@ -30,8 +30,7 @@ pub type Completion = ChatGeneric<CompletionChoice>;
 )]
 pub struct FIMCompletionRequest {
     #[serde(skip_serializing)]
-    #[builder(default)]
-    pub credentials: Option<Credentials>,
+    pub client: DeepSeekClient,
 
     pub model: String,
     pub prompt: String,
@@ -163,20 +162,20 @@ impl DeepSeekRequest for FIMCompletionRequest {
     type BlockingStream = CompletionStreamBlocking;
 
     async fn send(self) -> Result<Self::Response, DeepSeekError> {
-        let credentials = self.credentials.clone();
-        api_post("/completions", &self, credentials).await
+        let client = self.client.clone();
+        api_post("/completions", &self, client).await
     }
 
     async fn stream(self) -> Result<mpsc::Receiver<Self::StreamItem>, DeepSeekError> {
         let mut request = self;
         request.stream = Some(true);
 
-        let credentials = request.credentials.clone();
+        let client = request.client.clone();
         let mut event_source = api_request_stream(
             Method::POST,
             "/completions",
             |builder| builder.json(&request),
-            credentials,
+            client,
         )
         .await?;
 
@@ -255,11 +254,10 @@ impl DeepSeekRequest for FIMCompletionRequest {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Credentials;
     use crate::DEFAULT_BETA_BASE_URL;
 
-    fn get_credentials() -> Credentials {
-        Credentials::new(
+    fn get_client() -> DeepSeekClient {
+        DeepSeekClient::new(
             std::env::var("DEEPSEEK_API").expect("DEEPSEEK_API is not set"),
             DEFAULT_BETA_BASE_URL.clone(),
         )
@@ -267,7 +265,7 @@ mod tests {
 
     fn get_fim_builder() -> FIMCompletionRequestBuilder {
         FIMCompletionRequestBuilder::default()
-            .credentials(get_credentials())
+            .client(get_client())
             .model("deepseek-v4-flash")
             .max_tokens(64 as u32)
     }

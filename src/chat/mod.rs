@@ -2,7 +2,7 @@
 //!
 //! This module contains the data structures for the `/chat/completions` API
 //! and re-exports streaming helpers from the client implementation.
-use crate::Credentials;
+use crate::DeepSeekClient;
 use serde::{Deserialize, Serialize};
 
 pub mod client;
@@ -197,7 +197,7 @@ pub mod request {
     }
 
     /// Chat completion request body.
-    #[derive(Clone, Debug, PartialEq, Serialize, Builder)]
+    #[derive(Clone, Debug, Serialize, Builder)]
     #[builder(
         pattern = "owned",
         setter(into, strip_option),
@@ -206,8 +206,7 @@ pub mod request {
     )]
     pub struct ChatRequest {
         #[serde(skip_serializing)]
-        #[builder(default)]
-        pub credentials: Option<Credentials>,
+        pub client: DeepSeekClient,
 
         #[builder(setter(each(name = "message", into)))]
         pub messages: Vec<ChatMessage>,
