@@ -35,7 +35,7 @@ mod tests {
     use crate::DEFAULT_BASE_URL;
     fn get_credentials() -> Credentials {
         Credentials::new(
-            std::env::var("DEEPSEEK_API").unwrap(),
+            std::env::var("DEEPSEEK_API").expect("DEEPSEEK_API is not set"),
             DEFAULT_BASE_URL.clone(),
         )
     }
