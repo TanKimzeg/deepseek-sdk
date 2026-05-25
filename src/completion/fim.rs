@@ -32,35 +32,74 @@ pub struct FIMCompletionRequest {
     #[serde(skip_serializing)]
     pub client: DeepSeekClient,
 
+    /// Possible values: [`deepseek-v4-pro`]
+    ///
+    /// ID of the model to use.
     pub model: String,
+
+    /// The prompt to generate completions for.
     pub prompt: String,
+
+    /// Echo back the prompt in addition to the completion
     #[builder(default)]
     pub echo: Option<bool>,
+
+    /// Possible values: `<= 20`
+    ///
+    /// Include the log probabilities on the `logprobs` most likely output tokens,
+    /// as well the chosen tokens. For example, if `logprobs` is 20, the API will return a list of the 20 most likely tokens.
+    /// The API will always return the logprob of the sampled token, so there may be up to `logprobs+1` elements in the response.
+    /// The maximum value for `logprobs` is 20.
     #[builder(default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub logprobs: Option<u32>,
+
+    /// The maximum number of tokens that can be generated in the completion.
     #[builder(default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_tokens: Option<u32>,
-    /// string | string[] | null
+
+    /// Up to 16 sequences where the API will stop generating further tokens.
+    /// The returned text will not contain the stop sequence.
     #[builder(default)]
     #[serde(skip_serializing_if = "is_none_or_empty_stop")]
     pub stop: Option<Stop>,
+
+    /// Whether to stream back partial progress. If set, tokens will be sent as data-only server-sent events as they become available,
+    /// with the stream terminated by a · message. [Example Python code](https://cookbook.openai.com/examples/how_to_stream_completions).
     #[builder(default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub stream: Option<bool>,
+
+    /// Options for streaming response. Only set this when you set `stream: true`.
     #[builder(default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub stream_options: Option<StreamOptions>,
 
+    /// The suffix that comes after a completion of inserted text.
     #[builder(default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub suffix: Option<String>,
 
+    /// Possible values: `<= 2`
+    ///
+    /// Default value: `1`
+    ///
+    /// What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random,
+    /// while lower values like 0.2 will make it more focused and deterministic.
+    /// We generally recommend altering this or `top_p` but not both.
     #[builder(default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub temperature: Option<f32>,
 
+    /// Possible values: `<= 1`
+    ///
+    /// Default value: `1`
+    ///
+    /// An alternative to sampling with temperature, called nucleus sampling,
+    /// where the model considers the results of the tokens with top_p probability mass.
+    /// So 0.1 means only the tokens comprising the top 10% probability mass are considered.
+    /// We generally recommend altering this or `temperature` but not both.
     #[builder(default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub top_p: Option<f64>,
@@ -94,9 +133,16 @@ impl FIMCompletionRequestBuilder {
     }
 }
 
-/// FIM completion choice.
+/// Completion choice the model generated for the input prompt.
 #[derive(Clone, Debug, PartialEq, Deserialize)]
 pub struct CompletionChoice {
+    /// Possible values: [`stop`, `length`, `content_filter`, `insufficient_system_resource`]
+    ///
+    /// The reason the model stopped generating tokens.
+    /// This will be `stop` if the model hit a natural stop point or a provided stop sequence,
+    /// `length` if the maximum number of tokens specified in the request was reached,
+    /// `content_filter` if content was omitted due to a flag from our content filters,
+    /// or `insufficient_system_resource` if the request is interrupted due to insufficient resource of the inference system.
     pub finish_reason: FinishReason,
     pub index: u64,
     pub text: String,
@@ -267,7 +313,7 @@ mod tests {
         FIMCompletionRequestBuilder::default()
             .client(get_client())
             .model("deepseek-v4-flash")
-            .max_tokens(64 as u32)
+            .max_tokens(64_u32)
     }
 
     #[tokio::test]

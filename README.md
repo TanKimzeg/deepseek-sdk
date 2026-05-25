@@ -30,12 +30,12 @@ export DEEPSEEK_API="sk-..."
 
 ```rust
 use deepseek_sdk::chat::request::{ChatMessage, ChatRequestBuilder, Thinking};
-use deepseek_sdk::{Credentials, DeepSeekRequest, DEFAULT_BASE_URL};
+use deepseek_sdk::{DeepSeekClient, DeepSeekRequest, DEFAULT_BASE_URL};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
  let req = ChatRequestBuilder::default()
-  .credentials(Credentials::new("sk-...", DEFAULT_BASE_URL.clone()))
+  .client(DeepSeekClient::new("sk-...", DEFAULT_BASE_URL.clone()))
   .model("deepseek-v4-flash")
   .message(ChatMessage::User {
    content: "Hi".to_string(),
@@ -55,12 +55,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ```rust
 use deepseek_sdk::chat::request::{ChatMessage, ChatRequestBuilder, Thinking};
-use deepseek_sdk::{Credentials, DeepSeekRequest, DEFAULT_BASE_URL};
+use deepseek_sdk::{DeepSeekClient, DeepSeekRequest, DEFAULT_BASE_URL};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
  let req = ChatRequestBuilder::default()
-  .credentials(Credentials::new("sk-...", DEFAULT_BASE_URL.clone()))
+  .client(DeepSeekClient::new("sk-...", DEFAULT_BASE_URL.clone()))
   .model("deepseek-v4-flash")
   .message(ChatMessage::User { content: "Hi".into(), name: None })
   .thinking(Thinking::disabled())
@@ -83,11 +83,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ```rust
 use deepseek_sdk::chat::request::{ChatMessage, ChatRequestBuilder, Thinking};
-use deepseek_sdk::{Credentials, DeepSeekRequest, DEFAULT_BASE_URL};
+use deepseek_sdk::{DeepSeekClient, DeepSeekRequest, DEFAULT_BASE_URL};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
  let req = ChatRequestBuilder::default()
-  .credentials(Credentials::new("sk-...", DEFAULT_BASE_URL.clone()))
+  .client(DeepSeekClient::new("sk-...", DEFAULT_BASE_URL.clone()))
   .model("deepseek-v4-flash")
   .message(ChatMessage::User { content: "Hi".into(), name: None })
   .thinking(Thinking::disabled())
@@ -112,12 +112,12 @@ FIM uses the beta base URL.
 
 ```rust
 use deepseek_sdk::completion::fim::FIMCompletionRequestBuilder;
-use deepseek_sdk::{Credentials, DeepSeekRequest, DEFAULT_BETA_BASE_URL};
+use deepseek_sdk::{DeepSeekClient, DeepSeekRequest, DEFAULT_BETA_BASE_URL};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
  let req = FIMCompletionRequestBuilder::default()
-  .credentials(Credentials::new("sk-...", DEFAULT_BETA_BASE_URL.clone()))
+  .client(DeepSeekClient::new("sk-...", DEFAULT_BETA_BASE_URL.clone()))
   .model("deepseek-v4-pro")
   .prompt("def fib(n):")
   .suffix("    return fib(n-1) + fib(n-2)")
@@ -134,12 +134,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ```rust
 use deepseek_sdk::models::Models;
-use deepseek_sdk::{Credentials, DEFAULT_BASE_URL};
+use deepseek_sdk::{DeepSeekClient, DEFAULT_BASE_URL};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
- let credentials = Credentials::new("sk-...", DEFAULT_BASE_URL.clone());
- let models = Models::list(credentials).await?;
+ let client = DeepSeekClient::new("sk-...", DEFAULT_BASE_URL.clone());
+ let models = Models::list(client).await?;
  println!("{:#?}", models);
  Ok(())
 }
@@ -149,12 +149,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ```rust
 use deepseek_sdk::balance::Balance;
-use deepseek_sdk::{Credentials, DEFAULT_BASE_URL};
+use deepseek_sdk::{DeepSeekClient, DEFAULT_BASE_URL};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
- let credentials = Credentials::new("sk-...", DEFAULT_BASE_URL.clone());
- let balance = Balance::get(credentials).await?;
+ let client = DeepSeekClient::new("sk-...", DEFAULT_BASE_URL.clone());
+ let balance = Balance::get(client).await?;
  println!("{:#?}", balance);
  Ok(())
 }

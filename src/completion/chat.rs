@@ -34,69 +34,130 @@ pub mod request {
         #[serde(skip_serializing)]
         pub client: DeepSeekClient,
 
+        /// A list of messages comprising the conversation so far.
         #[builder(setter(each(name = "message", into)))]
         pub messages: Vec<BetaChatMessage>,
+
+        /// Possible values: [`deepseek-v4-flash`, `deepseek-v4-pro`]
+        ///
+        /// ID of the model to use.
         pub model: String,
         /// 推理开关对象：{"type": "enabled" | "disabled"}。
         #[builder(default)]
         #[serde(skip_serializing_if = "Option::is_none")]
+
+        /// Controls the switch between thinking and non-thinking mode.
         pub thinking: Option<Thinking>,
-        /// 控制推理强度（high / max）。
+
+        /// Possible values: [`high`, `max`]
+        ///
+        /// Controls the reasoning effort of the model.
+        /// The default effort is `high` for regular requests;
+        /// for some complex agent requests (such as Claude Code, OpenCode),
+        /// effort is automatically set to `max`.
+        /// For compatibility, `low` and `medium` are mapped to `high`,
+        /// and `xhigh` is mapped to `max`.
         #[builder(default)]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub reasoning_effort: Option<ReasoningEffort>,
+
+        /// The maximum number of tokens that can be generated in the chat completion.
+        ///
+        /// The total length of input tokens and generated tokens is limited by the model's context length.
+        ///
+        /// For the value range and default value, please refer to the [documentation](https://api-docs.deepseek.com/quick_start/pricing).
         #[builder(default)]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub max_tokens: Option<u32>,
-        /// Must be one of text or json_object.
+
+        /// An object specifying the format that the model must output.
+        /// Setting to { "type": "json_object" } enables JSON Output,
+        /// which guarantees the message the model generates is valid JSON.
+        ///
+        /// **Important**: When using JSON Output, you must also instruct the model to produce JSON yourself via a system or user message.
+        /// Without this, the model may generate an unending stream of whitespace until the generation reaches the token limit, resulting in a long-running and seemingly "stuck" request. Also note that the message content may be partially cut off if finish_reason="length", which indicates the generation exceeded max_tokens or the conversation exceeded the max context length.
         #[builder(default)]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub response_format: Option<ResponseFormat>,
 
-        /// string | string[] | null
+        /// Up to 16 sequences where the API will stop generating further tokens.
         #[builder(default)]
         #[serde(skip_serializing_if = "is_none_or_empty_stop")]
         pub stop: Option<Stop>,
 
+        /// If set, partial message deltas will be sent.
+        /// Tokens will be sent as data-only server-sent events (SSE) as they become available,
+        /// with the stream terminated by a `data: [DONE]`` message.
         #[builder(default)]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub stream: Option<bool>,
 
+        /// Options for streaming response. Only set this when you set `stream: true`.
         #[builder(default)]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub stream_options: Option<StreamOptions>,
 
-        /// 采样温度，介于 0 和 2 之间。更高的值，如 0.8，会使输出更随机，而更低的值，如 0.2，会使其更加集中和确定。
-        /// 我们通常建议可以更改这个值或者更改 top_p，但不建议同时对两者进行修改。
+        /// Possible values: `<= 2`
+        ///
+        /// Default value: `1`
+        ///
+        /// What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic.
+        /// We generally recommend altering this or `top_p` but not both.
         #[builder(default)]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub temperature: Option<f64>,
 
-        /// 作为调节采样温度的替代方案，模型会考虑前 top_p 概率的 token 的结果。所以 0.1 就意味着只有包括在最高 10% 概率中的 token 会被考虑。
-        /// 我们通常建议修改这个值或者更改 temperature，但不建议同时对两者进行修改。
+        /// Possible values: `<= 1`
+        ///
+        /// Default value: `1`
+        ///
+        /// An alternative to sampling with temperature, called nucleus sampling,
+        /// where the model considers the results of the tokens with top_p probability mass.
+        /// So 0.1 means only the tokens comprising the top 10% probability mass are considered.
+        ///
+        /// We generally recommend altering this or `temperature` but not both.
         #[builder(default)]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub top_p: Option<f64>,
 
+        /// A list of tools the model may call. Currently, only functions are supported as a tool.
+        /// Use this to provide a list of functions the model may generate JSON inputs for.
+        /// A max of 128 functions are supported.
         #[builder(default, setter(each(name = "tool", into)))]
         #[serde(skip_serializing_if = "Vec::is_empty")]
         pub tools: Vec<Tool>,
 
+        /// Controls which (if any) tool is called by the model.
+        /// `none` means the model will not call any tool and instead generates a message.
+        /// `auto` means the model can pick between generating a message or calling one or more tools.
+        /// `required` means the model must call one or more tools.
+        /// Specifying a particular tool via `{"type": "function", "function": {"name": "my_function"}}` forces the model to call that tool.
+        /// `none` is the default when no tools are present. `auto` is the default if tools are present.
         #[builder(default)]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub tool_choice: Option<ToolChoice>,
 
+        /// Whether to return log probabilities of the output tokens or not.
+        /// If true, returns the log probabilities of each output token returned in the `content` of `message`.
         #[builder(default)]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub logprobs: Option<bool>,
 
+        /// Possible values: `<= 20`
+        ///
+        /// An integer between 0 and 20 specifying the number of most likely tokens to return at each token position,
+        /// each with an associated log probability. `logprobs` must be set to `true` if this parameter is used.
         #[builder(default)]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub top_logprobs: Option<u32>,
 
-        /// 您自定义的 user_id，可选字符集为 [a-zA-Z0-9\-_]，最大长度为 512。请不要在 user_id 中包含用户隐私信息。
-        /// user_id 可用于区分您业务侧的用户身份，以帮助我们进行内容安全处理。
-        /// user_id 可用于 KVCache 缓存隔离，以进行隐私管理。
+        /// A custom `user_id`. Allowed character set is `[a-zA-Z0-9\-_]`, with a maximum length of 512.
+        /// Do not include user privacy information in the `user_id`.
+
+        /// `user_id` can be used to distinguish user identities on your side to help us with content safety review.
+        /// `user_id` can be used for KVCache isolation for privacy management.
+        /// `user_id` can be used for scheduling isolation of users on your business side.
+        /// For more details on the `user_id` parameter, please refer to [Rate Limit & Isolation](https://api-docs.deepseek.com/quick_start/rate_limit)
         #[builder(default)]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub user_id: Option<String>,
@@ -106,33 +167,42 @@ pub mod request {
     #[serde(tag = "role", rename_all = "snake_case")]
     pub enum BetaChatMessage {
         System {
+            /// The contents of the system message.
             content: String,
+            /// An optional name for the participant. Provides the model information to differentiate between participants of the same role.
             #[serde(skip_serializing_if = "Option::is_none")]
             name: Option<String>,
         },
         User {
+            /// The contents of the user message.
             content: String,
+            /// An optional name for the participant. Provides the model information to differentiate between participants of the same role.
             #[serde(skip_serializing_if = "Option::is_none")]
             name: Option<String>,
         },
         Assistant {
+            /// The contents of the assistant message.
             #[serde(skip_serializing_if = "Option::is_none")]
             content: Option<String>,
+            /// An optional name for the participant. Provides the model information to differentiate between participants of the same role.
             #[serde(skip_serializing_if = "Option::is_none")]
             name: Option<String>,
-            /// (Beta) 设置此参数为 true，来强制模型在其回答中以此 `assistant` 消息中提供的前缀内容开始。
-            /// 您必须设置 `base_url="https://api.deepseek.com/beta"` 来使用此功能。
+            /// (Beta) Set this to `true` to force the model to start its answer by the content of the supplied prefix in this `assistant` message.
+            /// You must set `base_url="https://api.deepseek.com/beta"` to use this feature.
             #[serde(default, skip_serializing_if = "is_false")]
             prefix: bool,
-            /// (Beta) 用于思考模式下在对话前缀续写功能下，作为最后一条 assistant 思维链内容的输入。
-            /// 使用此功能时，prefix 参数必须设置为 true。
+            /// (Beta) Used for the thinking mode in the [Chat Prefix Completion](https://api-docs.deepseek.com/guides/chat_prefix_completion)
+            /// feature as the input for the CoT in the last assistant message.
+            /// When using this feature, the `prefix` parameter must be set to `true`.
             #[serde(skip_serializing_if = "Option::is_none")]
             reasoning_content: Option<String>,
             #[serde(skip_serializing_if = "is_none_or_empty_vec")]
             tool_calls: Option<Vec<ToolCall>>,
         },
         Tool {
+            /// The contents of the tool message.
             content: String,
+            /// Tool call that this message is responding to.
             tool_call_id: String,
         },
     }
@@ -169,7 +239,10 @@ pub mod request {
         pub name: String,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub parameters: Option<serde_json::Value>,
-        /// (Beta) 是否严格按照提供的参数 JSON Schema 定义进行校验和调用，默认为 false。
+        /// (Beta) Default value: `false`
+        ///
+        /// If set to true, the API will use strict-mode for the tool calls to ensure the output always complies with the function's JSON schema.
+        /// This is a Beta feature, for more details please refer to [Tool Calls Guide](https://api-docs.deepseek.com/zh-cn/guides/tool_calls)
         pub strict: Option<bool>,
     }
 
@@ -244,6 +317,13 @@ pub mod request {
                 })?;
             }
 
+            if let Some(stop) = self.stop.as_ref().and_then(|s| s.as_ref()) {
+                if let Stop::Many(values) = stop {
+                    if values.len() > 16 {
+                        return Err("a maximum of 16 stop sequences are allowed".to_string());
+                    }
+                }
+            }
             Ok(())
         }
     }
@@ -363,7 +443,7 @@ mod tests {
         BetaChatRequestBuilder::default()
             .client(get_client())
             .model("deepseek-v4-flash")
-            .max_tokens(32 as u32)
+            .max_tokens(32_u32)
             .thinking(Thinking::disabled())
     }
 

@@ -146,9 +146,9 @@ mod tests {
                 content: "Hi".to_string(),
                 name: None,
             })
-            .max_tokens(5 as u32)
+            .max_tokens(5_u32)
             .logprobs(true)
-            .top_logprobs(2 as u32)
+            .top_logprobs(2_u32)
             .build()
             .unwrap();
         let response = req.send().await.unwrap();
@@ -254,7 +254,7 @@ mod tests {
                 content: "Hi".to_string(),
                 name: None,
             })
-            .max_tokens(16 as u32)
+            .max_tokens(16_u32)
             .build()
             .unwrap();
 
@@ -274,7 +274,7 @@ mod tests {
                 content: "Hi".to_string(),
                 name: None,
             })
-            .max_tokens(16 as u32)
+            .max_tokens(16_u32)
             .build()
             .unwrap();
 
