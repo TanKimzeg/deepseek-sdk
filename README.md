@@ -15,7 +15,7 @@ DeepSeek API client for Rust.
 Add to `Cargo.toml`:
 
 ```toml
-deepseek-sdk = "0.1"
+deepseek-sdk = "0.2"
 ```
 
 ## API Key
