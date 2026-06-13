@@ -4,7 +4,7 @@
 pub mod request {
     use crate::DeepSeekError;
     use crate::chat::request::{
-        ReasoningEffort, ResponseFormat, Stop, StreamOptions, Thinking, ThinkingType, ToolChoice,
+        ReasoningEffort, ResponseFormat, Stop, StreamOptions, Thinking, ToolChoice,
         ToolType, is_none_or_empty_stop,
     };
     use crate::chat::response::ToolCall;
@@ -23,7 +23,7 @@ pub mod request {
     }
 
     /// Beta chat request payload (beta base URL required).
-    #[derive(Clone, Debug, Serialize, Builder)]
+    #[derive(Clone, Debug, PartialEq, Serialize, Builder)]
     #[builder(
         pattern = "owned",
         setter(into, strip_option),
@@ -42,11 +42,10 @@ pub mod request {
         ///
         /// ID of the model to use.
         pub model: String,
-        /// 推理开关对象：{"type": "enabled" | "disabled"}。
-        #[builder(default)]
-        #[serde(skip_serializing_if = "Option::is_none")]
 
         /// Controls the switch between thinking and non-thinking mode.
+        #[builder(default)]
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub thinking: Option<Thinking>,
 
         /// Possible values: [`high`, `max`]
@@ -243,6 +242,7 @@ pub mod request {
         ///
         /// If set to true, the API will use strict-mode for the tool calls to ensure the output always complies with the function's JSON schema.
         /// This is a Beta feature, for more details please refer to [Tool Calls Guide](https://api-docs.deepseek.com/zh-cn/guides/tool_calls)
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub strict: Option<bool>,
     }
 
@@ -250,17 +250,15 @@ pub mod request {
         fn validate(&self) -> Result<(), String> {
             // derive_builder + strip_option makes Option<T> fields become Option<Option<T>> here;
             // flatten() treats "unset" and "explicit None" uniformly for validation.
-            if let Some(temperature) = self.temperature.flatten() {
-                if !(0.0..=2.0).contains(&temperature) {
+            if let Some(temperature) = self.temperature.flatten()
+                && !(0.0..=2.0).contains(&temperature) {
                     return Err("temperature must be between 0 and 2".to_string());
                 }
-            }
 
-            if let Some(top_p) = self.top_p.flatten() {
-                if !(0.0..=1.0).contains(&top_p) {
+            if let Some(top_p) = self.top_p.flatten()
+                && !(0.0..=1.0).contains(&top_p) {
                     return Err("top_p must be between 0 and 1".to_string());
                 }
-            }
 
             if let Some(top_logprobs) = self.top_logprobs.flatten() {
                 if top_logprobs > 20 {
@@ -271,35 +269,10 @@ pub mod request {
                 }
             }
 
-            if let Some(thinking) = self
-                .thinking
-                .as_ref()
-                .and_then(|thinking| thinking.as_ref())
-            {
-                if let Some(reasoning_effort) = self
-                    .reasoning_effort
-                    .as_ref()
-                    .and_then(|effort| effort.as_ref())
-                {
-                    if matches!(thinking.typ, ThinkingType::Disabled)
-                        && matches!(
-                            reasoning_effort,
-                            ReasoningEffort::High | ReasoningEffort::Max
-                        )
-                    {
-                        return Err(
-                            "thinking options type cannot be disabled when reasoning_effort is set"
-                                .to_string(),
-                        );
-                    }
-                }
-            }
-
-            if let Some(stream) = self.stream.flatten() {
-                if !stream && self.stream_options.is_some() {
+            if let Some(stream) = self.stream.flatten()
+                && !stream && self.stream_options.is_some() {
                     return Err("stream_options cannot be set when stream is false".to_string());
                 }
-            }
 
             if let Some(messages) = self.messages.as_ref() {
                 messages.iter().try_for_each(|message| {
@@ -317,13 +290,26 @@ pub mod request {
                 })?;
             }
 
-            if let Some(stop) = self.stop.as_ref().and_then(|s| s.as_ref()) {
-                if let Stop::Many(values) = stop {
-                    if values.len() > 16 {
+            if let Some(stop) = self.stop.as_ref().and_then(|s| s.as_ref())
+                && let Stop::Many(values) = stop
+                    && values.len() > 16 {
                         return Err("a maximum of 16 stop sequences are allowed".to_string());
                     }
+
+            if let Some(user_id) = self.user_id.as_ref().and_then(|u| u.as_ref()) {
+                if user_id.len() > 512 {
+                    return Err("user_id must be at most 512 characters".to_string());
+                }
+                if !user_id
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+                {
+                    return Err(
+                        "user_id must only contain [a-zA-Z0-9\\-_]".to_string(),
+                    );
                 }
             }
+
             Ok(())
         }
     }

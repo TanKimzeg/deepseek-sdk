@@ -157,14 +157,15 @@ mod tests {
 
     #[tokio::test]
     async fn api_error() {
-        let mut req = get_builder()
+        // Send a request with a deliberately invalid model to verify API error handling
+        let req = get_builder()
+            .model("invalid-model-name")
             .message(ChatMessage::User {
                 content: "Hi".to_string(),
                 name: None,
             })
             .build()
             .unwrap();
-        req.reasoning_effort = Some(ReasoningEffort::Max);
         let response = req.send().await;
         assert!(response.is_err());
         if let Err(err) = response {
@@ -177,12 +178,7 @@ mod tests {
             {
                 assert_eq!(status, Some(400));
                 assert!(body.is_some());
-                assert_eq!(
-                    error.message,
-                    "thinking options type cannot be disabled when reasoning_effort is set"
-                );
                 assert_eq!(error.error_type, "invalid_request_error");
-                assert_eq!(error.param.as_deref(), None);
                 assert_eq!(error.code.as_deref(), Some("invalid_request_error"));
             } else {
                 panic!("Expected DeepSeekError::Api");

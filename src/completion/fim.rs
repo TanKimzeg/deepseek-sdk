@@ -21,7 +21,7 @@ use tokio::sync::mpsc;
 pub type Completion = ChatGeneric<CompletionChoice>;
 
 /// FIM completion request payload.
-#[derive(Clone, Debug, Serialize, Builder)]
+#[derive(Clone, Debug, PartialEq, Serialize, Builder)]
 #[builder(
     pattern = "owned",
     setter(into, strip_option),
@@ -42,6 +42,7 @@ pub struct FIMCompletionRequest {
 
     /// Echo back the prompt in addition to the completion
     #[builder(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub echo: Option<bool>,
 
     /// Possible values: `<= 20`
@@ -90,7 +91,7 @@ pub struct FIMCompletionRequest {
     /// We generally recommend altering this or `top_p` but not both.
     #[builder(default)]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub temperature: Option<f32>,
+    pub temperature: Option<f64>,
 
     /// Possible values: `<= 1`
     ///
@@ -107,34 +108,37 @@ pub struct FIMCompletionRequest {
 
 impl FIMCompletionRequestBuilder {
     fn validate(&self) -> Result<(), String> {
-        if let Some(temperature) = self.temperature.flatten() {
-            if !(0.0..=2.0).contains(&temperature) {
+        if let Some(temperature) = self.temperature.flatten()
+            && !(0.0..=2.0).contains(&temperature) {
                 return Err("temperature must be between 0 and 2".to_string());
             }
-        }
-        if let Some(logprobs) = self.logprobs.flatten() {
-            if logprobs > 20 {
+        if let Some(logprobs) = self.logprobs.flatten()
+            && logprobs > 20 {
                 return Err("logprobs must be <= 20".to_string());
             }
-        }
 
-        if let Some(top_p) = self.top_p.flatten() {
-            if !(0.0..=1.0).contains(&top_p) {
+        if let Some(top_p) = self.top_p.flatten()
+            && !(0.0..=1.0).contains(&top_p) {
                 return Err("top_p must be between 0 and 1".to_string());
             }
-        }
 
-        if let Some(stream) = self.stream.flatten() {
-            if !stream && self.stream_options.is_some() {
+        if let Some(stream) = self.stream.flatten()
+            && !stream && self.stream_options.is_some() {
                 return Err("stream_options cannot be set when stream is false".to_string());
             }
-        }
+
+        if let Some(stop) = self.stop.as_ref().and_then(|s| s.as_ref())
+            && let Stop::Many(values) = stop
+                && values.len() > 16 {
+                    return Err("a maximum of 16 stop sequences are allowed".to_string());
+                }
+
         Ok(())
     }
 }
 
 /// Completion choice the model generated for the input prompt.
-#[derive(Clone, Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 pub struct CompletionChoice {
     /// Possible values: [`stop`, `length`, `content_filter`, `insufficient_system_resource`]
     ///
@@ -151,7 +155,7 @@ pub struct CompletionChoice {
 }
 
 /// Completion finish reason.
-#[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum FinishReason {
     Stop,
@@ -161,7 +165,7 @@ pub enum FinishReason {
 }
 
 /// Logprob details for completion tokens.
-#[derive(Clone, Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 pub struct Logprobs {
     pub text_offset: Vec<u64>,
     pub token_logprobs: Vec<f64>,
@@ -169,7 +173,7 @@ pub struct Logprobs {
     pub top_logprobs: Option<Vec<HashMap<String, f64>>>,
 }
 /// Streaming completion choice.
-#[derive(Clone, Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 pub struct CompletionChoiceStream {
     pub finish_reason: Option<FinishReason>,
     pub index: u64,

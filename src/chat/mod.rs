@@ -49,7 +49,7 @@ pub mod response {
     }
 
     /// Generic chat response container.
-    #[derive(Clone, Debug, PartialEq, Deserialize)]
+    #[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
     pub struct ChatGeneric<C> {
         /// A unique identifier for the chat completion.
         pub id: String,
@@ -276,7 +276,7 @@ pub mod request {
     }
 
     /// Chat completion request body.
-    #[derive(Clone, Debug, Serialize, Builder)]
+    #[derive(Clone, Debug, PartialEq, Serialize, Builder)]
     #[builder(
         pattern = "owned",
         setter(into, strip_option),
@@ -580,13 +580,14 @@ pub mod request {
         /// and the [JSON Schema reference](https://json-schema.org/understanding-json-schema/) for documentation about the format.
         ///
         /// Omitting `parameters` defines a function with an empty parameter list.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub parameters: Option<serde_json::Value>,
     }
     /// Tool choice configuration.
     #[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
     #[serde(untagged)]
     pub enum ToolChoice {
-        /// Possible values: [`none`, `auto`, r`equired]
+        /// Possible values: [`none`, `auto`, `required`]
         Simple(ChatToolChoice),
         /// {"type":"function","function":{...}}
         Named(ChatNamedToolChoice),
@@ -669,16 +670,16 @@ pub mod request {
         fn validate(&self) -> Result<(), String> {
             // derive_builder + strip_option makes Option<T> fields become Option<Option<T>> here;
             // flatten() treats "unset" and "explicit None" uniformly for validation.
-            if let Some(temperature) = self.temperature.flatten() {
-                if !(0.0..=2.0).contains(&temperature) {
-                    return Err("temperature must be between 0 and 2".to_string());
-                }
+            if let Some(temperature) = self.temperature.flatten()
+                && !(0.0..=2.0).contains(&temperature)
+            {
+                return Err("temperature must be between 0 and 2".to_string());
             }
 
-            if let Some(top_p) = self.top_p.flatten() {
-                if !(0.0..=1.0).contains(&top_p) {
-                    return Err("top_p must be between 0 and 1".to_string());
-                }
+            if let Some(top_p) = self.top_p.flatten()
+                && !(0.0..=1.0).contains(&top_p)
+            {
+                return Err("top_p must be between 0 and 1".to_string());
             }
 
             if let Some(top_logprobs) = self.top_logprobs.flatten() {
@@ -690,41 +691,29 @@ pub mod request {
                 }
             }
 
-            if let Some(thinking) = self
-                .thinking
-                .as_ref()
-                .and_then(|thinking| thinking.as_ref())
+            if let Some(stream) = self.stream.flatten()
+                && !stream
+                && self.stream_options.is_some()
             {
-                if let Some(reasoning_effort) = self
-                    .reasoning_effort
-                    .as_ref()
-                    .and_then(|effort| effort.as_ref())
+                return Err("stream_options cannot be set when stream is false".to_string());
+            }
+
+            if let Some(stop) = self.stop.as_ref().and_then(|s| s.as_ref())
+                && let Stop::Many(values) = stop
+                && values.len() > 16
+            {
+                return Err("a maximum of 16 stop sequences are allowed".to_string());
+            }
+
+            if let Some(user_id) = self.user_id.as_ref().and_then(|u| u.as_ref()) {
+                if user_id.len() > 512 {
+                    return Err("user_id must be at most 512 characters".to_string());
+                }
+                if !user_id
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
                 {
-                    if matches!(thinking.typ, ThinkingType::Disabled)
-                        && matches!(
-                            reasoning_effort,
-                            ReasoningEffort::High | ReasoningEffort::Max
-                        )
-                    {
-                        return Err(
-                            "thinking options type cannot be disabled when reasoning_effort is set"
-                                .to_string(),
-                        );
-                    }
-                }
-            }
-
-            if let Some(stream) = self.stream.flatten() {
-                if !stream && self.stream_options.is_some() {
-                    return Err("stream_options cannot be set when stream is false".to_string());
-                }
-            }
-
-            if let Some(stop) = self.stop.as_ref().and_then(|s| s.as_ref()) {
-                if let Stop::Many(values) = stop {
-                    if values.len() > 16 {
-                        return Err("a maximum of 16 stop sequences are allowed".to_string());
-                    }
+                    return Err("user_id must only contain [a-zA-Z0-9\\-_]".to_string());
                 }
             }
 
@@ -735,6 +724,8 @@ pub mod request {
 
 #[cfg(test)]
 mod tests {
+    use crate::{DEFAULT_BASE_URL, DeepSeekClient};
+
     use super::request::*;
     use super::response::*;
     use serde_json::{Value, json};
@@ -831,6 +822,7 @@ mod tests {
         assert_eq!(value.get("type"), Some(&json!("disabled")));
 
         let req = ChatRequestBuilder::default()
+            .client(DeepSeekClient::new("sk-...", DEFAULT_BASE_URL.clone()))
             .model("deepseek-v4-flash")
             .message(ChatMessage::User {
                 content: "Hi".to_string(),
@@ -839,7 +831,7 @@ mod tests {
             .thinking(thinking)
             .reasoning_effort(ReasoningEffort::Max)
             .build();
-        // thinking options type cannot be disabled when reasoning_effort is set
-        assert!(req.is_err());
+        // API no longer rejects reasoning_effort with disabled thinking
+        assert!(req.is_ok());
     }
 }

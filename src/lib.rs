@@ -59,6 +59,14 @@ pub struct DeepSeekClient {
     pub client: Client,
 }
 
+impl PartialEq for DeepSeekClient {
+    fn eq(&self, other: &Self) -> bool {
+        self.credentials == other.credentials
+    }
+}
+
+impl Eq for DeepSeekClient {}
+
 impl DeepSeekClient {
     pub fn new(api_key: impl Into<String>, base_url: impl Into<String>) -> Self {
         DeepSeekClient {
